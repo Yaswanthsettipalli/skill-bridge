@@ -6,6 +6,8 @@ import jwt from "jsonwebtoken";
 import cors from "cors";
 import opportunityRoutes from "./routes/OpportunityRoutes.js";
 
+console.log("🔥 THIS SERVER.JS IS RUNNING 🔥");
+
 dotenv.config();
 const app = express();
 
@@ -20,6 +22,11 @@ app.use(
 
 app.use(express.json());
 
+/* ===================== TEST ROUTE ===================== */
+app.get("/test", (req, res) => {
+  res.send("SERVER TEST OK");
+});
+
 /* ===================== DB ===================== */
 mongoose
   .connect(process.env.MONGO_URI)
@@ -31,11 +38,13 @@ const userSchema = new mongoose.Schema(
   {
     username: String,
     fullName: String,
-    email: String,
+    email: { type: String, unique: true }, // 🔹 unique email
     password: String,
     userType: { type: String, enum: ["NGO", "Volunteer"] },
     location: String,
     organizationName: String,
+    organizationDescription: String,
+    websiteUrl: String,
   },
   { timestamps: true }
 );
@@ -89,9 +98,7 @@ const Application =
 /* ===================== AUTH MIDDLEWARE ===================== */
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
+  if (!token) return res.status(401).json({ message: "No token provided" });
 
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
@@ -101,86 +108,64 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-/* ===================== ROLE MIDDLEWARE (NGO ONLY) ===================== */
+/* ===================== ROLE MIDDLEWARE ===================== */
 const ngoOnly = (req, res, next) => {
-  if (req.user.role !== "NGO") {
-    return res.status(403).json({ message: "NGO access only" });
-  }
+  if (req.user.role !== "NGO") return res.status(403).json({ message: "NGO access only" });
   next();
 };
 
-/* ===================== APPLY OPPORTUNITY ===================== */
-app.post("/api/applications/apply", authMiddleware, async (req, res) => {
-  try {
-    const { opportunityId } = req.body;
-    const userId = req.user.id;
-
-    const opportunity = await Opportunity.findById(opportunityId);
-    if (!opportunity) {
-      return res.status(404).json({ message: "Opportunity not found" });
-    }
-
-    if (opportunity.status === "CLOSED") {
-      return res.status(400).json({ message: "This opportunity is closed" });
-    }
-
-    if (opportunity.createdBy.toString() === userId) {
-      return res
-        .status(403)
-        .json({ message: "You cannot apply to your own opportunity" });
-    }
-
-    const alreadyApplied = await Application.findOne({
-      opportunity: opportunityId,
-      volunteer: userId,
-    });
-
-    if (alreadyApplied) {
-      return res
-        .status(400)
-        .json({ message: "You already applied for this opportunity" });
-    }
-
-    const application = await Application.create({
-      opportunity: opportunityId,
-      volunteer: userId,
-    });
-
-    res.status(201).json({
-      message: "Application submitted successfully",
-      application,
-    });
-  } catch (err) {
-    console.error("Apply error:", err);
-    res.status(500).json({ message: "Failed to apply opportunity" });
-  }
-});
-
 /* ===================== AUTH ROUTES ===================== */
 app.post("/api/auth/signup", async (req, res) => {
-  const hashedPassword = await bcrypt.hash(req.body.password, 10);
-  await User.create({ ...req.body, password: hashedPassword });
-  res.json({ message: "Signup successful" });
+  try {
+    // 🔹 Check duplicate email
+    const existingUser = await User.findOne({ email: req.body.email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    const user = await User.create({
+      ...req.body,
+      password: hashedPassword,
+    });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.userType },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    user.password = undefined;
+
+    res.status(201).json({ user, token });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ message: "Signup failed" });
+  }
 });
 
 app.post("/api/auth/login", async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  try {
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    const isMatch = await bcrypt.compare(req.body.password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.userType },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    user.password = undefined;
+
+    res.json({ token, user });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Login failed" });
   }
-
-  const isMatch = await bcrypt.compare(req.body.password, user.password);
-  if (!isMatch) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-
-  const token = jwt.sign(
-    { id: user._id, role: user.userType },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
-  );
-
-  res.json({ token, user });
 });
 
 /* ===================== OPPORTUNITY ROUTES ===================== */
@@ -188,6 +173,12 @@ app.use(
   "/api/opportunities",
   opportunityRoutes(authMiddleware, ngoOnly)
 );
+
+/* ===================== FALLBACK 404 ===================== */
+app.use((req, res) => {
+  console.log("❌ UNMATCHED ROUTE:", req.method, req.url);
+  res.status(404).json({ message: "Route not found" });
+});
 
 /* ===================== SERVER ===================== */
 const PORT = process.env.PORT || 5000;

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import NavBar from "./Components/NavBar";
 import Hero from "./Components/Hero";
 import Signup from "./Components/Signup";
 import Login from "./Components/Login";
 import Dashboard from "./Components/Dashboard";
-import AccountSettings from "./Components/Accountsettings";
+import AccountSettings from "./Components/AccountSettings";
 import CreateOpportunity from "./Components/CreateOpportunity";
 import Opportunities from "./Components/Opportunities";
 import ApplyOpportunity from "./Components/ApplyOpportunity";
@@ -15,7 +15,6 @@ function App() {
     return JSON.parse(localStorage.getItem("user"));
   });
 
-  // Optional: keep currentUser in sync with Local Storage
   useEffect(() => {
     const handleStorageChange = () => {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -25,37 +24,24 @@ function App() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Helper component for protected routes
+  // Protected route wrapper
   const ProtectedRoute = ({ children }) => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user) {
-      // Not logged in → redirect to login
       return <Navigate to="/login" replace />;
     }
     return children;
   };
 
-  // Helper component for NGO-only routes
-  const NGORoute = ({ children }) => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const role = user?.userType?.trim().toUpperCase();
-    if (role !== "NGO") {
-      alert("Access Denied: Only NGO users can access this page.");
-      return <Navigate to="/dashboard" replace />;
-    }
-    return children;
-  };
-
   return (
-    <>
+    <Router>
       <NavBar user={currentUser} />
-
       <Routes>
         <Route path="/" element={<Hero />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Dashboard */}
+        {/* Dashboard Route */}
         <Route
           path="/dashboard"
           element={
@@ -65,19 +51,17 @@ function App() {
           }
         />
 
-        {/* Create Opportunity - NGO only */}
+        {/* Create Opportunity Route – Standalone Page */}
         <Route
           path="/create-opportunity"
           element={
             <ProtectedRoute>
-              <NGORoute>
-                <CreateOpportunity />
-              </NGORoute>
+              <CreateOpportunity />
             </ProtectedRoute>
           }
         />
 
-        {/* View Opportunities - all logged-in users */}
+        {/* Other Routes */}
         <Route
           path="/opportunities"
           element={
@@ -87,7 +71,6 @@ function App() {
           }
         />
 
-        {/* Apply Opportunity - all logged-in users */}
         <Route
           path="/apply/:id"
           element={
@@ -97,7 +80,6 @@ function App() {
           }
         />
 
-        {/* Account Settings */}
         <Route
           path="/account-settings"
           element={
@@ -107,10 +89,10 @@ function App() {
           }
         />
 
-        {/* Catch-all route → redirect to home */}
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+    </Router>
   );
 }
 

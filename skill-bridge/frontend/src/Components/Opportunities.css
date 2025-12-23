@@ -395,3 +395,47 @@ p {
   font-weight: 500;
   margin: 10px 0;
 }
+/* ===== BUTTON STYLES ===== */
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.actions button {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* ✅ Create button (green) */
+.actions button[type="submit"] {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.actions button[type="submit"]:hover {
+  background-color: #218838;
+}
+
+/* ✅ Cancel button (grey) */
+.actions button[type="button"] {
+  background-color: #6c757d;
+  color: #fff;
+}
+
+.actions button[type="button"]:hover {
+  background-color: #5a6268;
+}
+
+/* ✅ Disabled state */
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

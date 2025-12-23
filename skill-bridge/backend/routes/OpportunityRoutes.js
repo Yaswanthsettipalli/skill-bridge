@@ -78,6 +78,9 @@ const opportunityRoutes = (authMiddleware, ngoOnly) => {
     }
   });
 
+  // ✅ No wildcard 404 inside this router
+  // Let server.js handle unmatched routes
+
   return router;
 };
 

@@ -9,7 +9,7 @@ const OpportunityCard = ({
   onApply,
   onEdit,
   onDelete,
-  isOwner,
+  isOwner, // ✅ This prop will control the visibility of Edit/Delete
 }) => {
   const [showFullDesc, setShowFullDesc] = useState(false);
 
@@ -30,6 +30,7 @@ const OpportunityCard = ({
         }`}
       />
 
+      {/* Edit button on top */}
       {isOwner && (
         <button className="btn-edit-top" onClick={() => onEdit(opportunity)}>
           Edit
@@ -58,9 +59,7 @@ const OpportunityCard = ({
 
       <p>
         <strong>NGO:</strong>{" "}
-        {opportunity.createdBy?.organizationName ||
-          opportunity.ngoName ||
-          "N/A"}
+        {opportunity.createdBy?.organizationName || opportunity.ngoName || "N/A"}
       </p>
 
       {opportunity.duration && (
@@ -84,6 +83,7 @@ const OpportunityCard = ({
             View Details
           </button>
 
+          {/* Delete button only for owner */}
           {isOwner && (
             <button
               className="btn-danger"
@@ -94,13 +94,15 @@ const OpportunityCard = ({
           )}
         </div>
 
-        {/* Apply always visible */}
-        <button
-          className="btn-apply-green"
-          onClick={() => onApply(opportunity)}
-        >
-          Apply
-        </button>
+        {/* Apply button only if not owner and opportunity is OPEN */}
+        {!isOwner && opportunity.status === "OPEN" && (
+          <button
+            className="btn-apply-green"
+            onClick={() => onApply(opportunity)}
+          >
+            Apply
+          </button>
+        )}
       </div>
     </div>
   );

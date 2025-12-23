@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import "./Dashboard.css";
 
 const Dashboard = ({ fullName }) => {
   const navigate = useNavigate();
-  const [error, setError] = useState("");
+
+  const [dashboardError, setDashboardError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [stats, setStats] = useState({
     activeOpportunities: 0,
     applications: 0,
@@ -16,24 +18,27 @@ const Dashboard = ({ fullName }) => {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // ------------------- Fetch Dashboard Data -------------------
+  // User role derived safely
+  const userRole = user?.userType?.trim().toUpperCase();
+
+  // Fetch dashboard data
   useEffect(() => {
     if (!token || !user) {
-      setError("Please login to access dashboard.");
+      setDashboardError("Please login to access dashboard.");
       return;
     }
 
     const fetchDashboardData = async () => {
       try {
-        const oppRes = await axios.get(
+        const response = await axios.get(
           "http://localhost:5000/api/opportunities",
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
 
-        const opportunities = Array.isArray(oppRes.data)
-          ? oppRes.data
+        const opportunities = Array.isArray(response.data)
+          ? response.data
           : [];
 
         const activeOpps = opportunities.filter(
@@ -42,105 +47,111 @@ const Dashboard = ({ fullName }) => {
 
         setStats({
           activeOpportunities: activeOpps,
-          applications: 0,        // backend not implemented yet
-          activeVolunteers: 0,    // backend not implemented yet
-          pendingApplications: 0, // backend not implemented yet
+          applications: 0,
+          activeVolunteers: 0,
+          pendingApplications: 0,
         });
       } catch (err) {
         console.error(err);
-        setError("Failed to load dashboard data.");
+        setDashboardError("Failed to load dashboard data.");
       }
     };
 
     fetchDashboardData();
   }, [token, user]);
 
-  // ------------------- Create Opportunity -------------------
-  const handleCreateOpportunity = () => {
-    if (user?.role !== "NGO") {
-      setError("Only NGO users can create opportunities.");
+  // Create Opportunity click
+  const handleCreateOpportunity = (e) => {
+    e.preventDefault();
+    setActionError("");
+
+    if (!user || !token) {
+      setActionError("Please login first.");
       return;
     }
-    navigate("/create-opportunity");
+
+    if (userRole !== "NGO") {
+      setActionError("Access denied: Only NGO users can create opportunities.");
+      return;
+    }
+
+    // Optional: Validate token with backend before navigating
+    fetch("http://localhost:5000/api/opportunities", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Unauthorized or invalid token");
+        navigate("/create-opportunity");
+      })
+      .catch((err) => {
+        console.error("Token validation failed:", err);
+        setActionError("Failed to validate your session. Please login again.");
+      });
   };
 
   return (
     <div className="dashboard-layout">
-      {/* ---------------- Sidebar ---------------- */}
+      {/* Sidebar */}
       <aside className="sidebar">
-        <h2 className="org-name">
-          {user?.organizationName || "Organization"}
-        </h2>
-        <p className="org-type">{user?.role}</p>
+        <h2 className="org-name">{user?.organizationName || "Organization"}</h2>
+        <p className="org-type">{userRole}</p>
 
         <nav className="menu">
           <button className="menu-item active">Dashboard</button>
-
           <button
             className="menu-item"
             onClick={() => navigate("/opportunities")}
           >
             Opportunities
           </button>
-
           <button className="menu-item">Applications</button>
           <button className="menu-item">Messages</button>
         </nav>
       </aside>
 
-      {/* ---------------- Main Content ---------------- */}
+      {/* Main Content */}
       <main className="main-content">
         <h1 className="welcome">
           Welcome {fullName || user?.fullName || "User"} 👋
         </h1>
 
-        {error && <p className="error-msg">{error}</p>}
+        {dashboardError && <p className="error-msg">{dashboardError}</p>}
+        {actionError && <p className="error-msg">{actionError}</p>}
 
-        {/* ---------------- Overview Cards ---------------- */}
+        {/* Overview Cards */}
         <section className="overview">
           <div className="card blue">
             <h2>{stats.activeOpportunities}</h2>
             <p>Active Opportunities</p>
           </div>
-
           <div className="card green">
             <h2>{stats.applications}</h2>
             <p>Applications</p>
           </div>
-
           <div className="card purple">
             <h2>{stats.activeVolunteers}</h2>
             <p>Active Volunteers</p>
           </div>
-
           <div className="card yellow">
             <h2>{stats.pendingApplications}</h2>
             <p>Pending Applications</p>
           </div>
         </section>
 
-        {/* ---------------- Recent Applications ---------------- */}
-        <section className="section">
-          <div className="section-header">
-            <h3>Recent Applications</h3>
-            <button className="view-all">View All</button>
-          </div>
-
-          <p className="muted-text">
-            No applications received yet.
-          </p>
-        </section>
-
-        {/* ---------------- Quick Actions ---------------- */}
+        {/* Quick Actions */}
         <section className="section">
           <h3>Quick Actions</h3>
-
           <div className="quick-actions">
             <button className="action-btn" onClick={handleCreateOpportunity}>
               ➕ Create New Opportunity
             </button>
-
-            <button className="action-btn">💬 View Messages</button>
+            <button
+              className="action-btn"
+              onClick={() => navigate("/messages")}
+            >
+              💬 View Messages
+            </button>
           </div>
         </section>
       </main>

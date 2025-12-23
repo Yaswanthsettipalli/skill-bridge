@@ -14,7 +14,7 @@ const Signup = () => {
     location: "",
     organizationName: "",
     organizationDescription: "",
-    websiteUrl: ""
+    websiteUrl: "",
   });
 
   const [error, setError] = useState("");
@@ -28,6 +28,7 @@ const Signup = () => {
     setError("");
 
     try {
+      // 🔹 Use exact backend endpoint
       const res = await fetch("http://localhost:5000/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,16 +37,27 @@ const Signup = () => {
 
       const data = await res.json();
 
-      if (res.ok) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-
-        // ✅ DIRECT REDIRECT TO DASHBOARD
-        navigate("/dashboard");
-      } else {
+      if (!res.ok) {
+        // 🔹 backend sends data.message on error
         setError(data.message || "Signup failed");
+        return;
       }
+
+      // ✅ Check for both user and token
+      if (!data.user || !data.token) {
+        setError("Invalid server response. Please try again.");
+        return;
+      }
+
+      // 🔹 Save in localStorage
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("token", data.token);
+
+      // ✅ Redirect to dashboard
+      navigate("/dashboard");
     } catch (err) {
-      setError("Server error");
+      console.error(err);
+      setError("Server error. Please try again later.");
     }
   };
 
@@ -107,14 +119,6 @@ const Signup = () => {
             <option value="NGO">NGO / Organization</option>
             <option value="Volunteer">Volunteer</option>
           </select>
-
-          <label>Location (Optional)</label>
-          <input
-            name="location"
-            placeholder="e.g. New York, NY"
-            value={formData.location}
-            onChange={handleChange}
-          />
 
           {formData.userType === "NGO" && (
             <>
