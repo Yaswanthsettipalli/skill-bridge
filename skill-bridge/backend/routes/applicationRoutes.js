@@ -1,16 +1,20 @@
 import express from "express";
 import {
-  applyForOpportunity,
-  getApplicationsForNGO,
-  updateApplicationStatus,
+  applyToOpportunity,
+  getMyApplications,
 } from "../controllers/applicationController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
-export default function applicationRoutes(authMiddleware) {
-  const router = express.Router();
+const router = express.Router();
 
-  router.post("/apply/:opportunityId", authMiddleware, applyForOpportunity);
-  router.get("/ngo", authMiddleware, getApplicationsForNGO);
-  router.put("/:id", authMiddleware, updateApplicationStatus);
+/* =========================
+   APPLY
+   ========================= */
+router.post("/apply", authMiddleware, applyToOpportunity);
 
-  return router;
-}
+/* =========================
+   GET MY APPLICATIONS
+   ========================= */
+router.get("/my", authMiddleware, getMyApplications);
+
+export default router;

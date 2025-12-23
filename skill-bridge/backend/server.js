@@ -5,6 +5,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cors from "cors";
 import opportunityRoutes from "./routes/OpportunityRoutes.js";
+import applicationRoutes from "./routes/applicationRoutes.js";
+
+
 
 dotenv.config();
 const app = express();
@@ -110,6 +113,7 @@ const ngoOnly = (req, res, next) => {
 };
 
 /* ===================== APPLY OPPORTUNITY ===================== */
+app.use("/api/applications", applicationRoutes);
 app.post("/api/applications/apply", authMiddleware, async (req, res) => {
   try {
     const { opportunityId } = req.body;
@@ -158,10 +162,35 @@ app.post("/api/applications/apply", authMiddleware, async (req, res) => {
 
 /* ===================== AUTH ROUTES ===================== */
 app.post("/api/auth/signup", async (req, res) => {
-  const hashedPassword = await bcrypt.hash(req.body.password, 10);
-  await User.create({ ...req.body, password: hashedPassword });
-  res.json({ message: "Signup successful" });
+  try {
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    const user = await User.create({
+      ...req.body,
+      password: hashedPassword,
+    });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.userType },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Remove password before sending
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    res.status(201).json({
+      message: "Signup successful",
+      token,
+      user: userObj,
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ message: "Signup failed" });
+  }
 });
+
 
 app.post("/api/auth/login", async (req, res) => {
   const user = await User.findOne({ email: req.body.email });
@@ -188,6 +217,7 @@ app.use(
   "/api/opportunities",
   opportunityRoutes(authMiddleware, ngoOnly)
 );
+
 
 /* ===================== SERVER ===================== */
 const PORT = process.env.PORT || 5000;

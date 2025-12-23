@@ -1,92 +1,95 @@
+
+
+/* =========================
+   APPLY TO OPPORTUNITY
+   ========================= */
 import Application from "../models/Application.js";
 import Opportunity from "../models/Opportunity.js";
 
-/**
- * APPLY FOR OPPORTUNITY
- */
-export const applyForOpportunity = async (req, res) => {
+export const applyToOpportunity = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { opportunityId } = req.params;
+    const {
+      opportunityId,
+      motivation,
+      availability,
+      skills
+    } = req.body;
 
+    const volunteerId = req.user.id;
+
+    // Validate opportunity
     const opportunity = await Opportunity.findById(opportunityId);
-    if (!opportunity)
+    if (!opportunity) {
       return res.status(404).json({ message: "Opportunity not found" });
-
-    // NGO applying to own opportunity ❌
-    if (opportunity.createdBy.toString() === userId) {
-      return res.status(400).json({
-        message: "You cannot apply to an opportunity created by you.",
-      });
     }
 
     if (opportunity.status === "CLOSED") {
-      return res
-        .status(400)
-        .json({ message: "This opportunity is closed." });
+      return res.status(400).json({ message: "Opportunity is closed" });
     }
 
-    // Prevent duplicate applications
-    const alreadyApplied = await Application.findOne({
+    if (opportunity.createdBy.toString() === volunteerId) {
+      return res
+        .status(403)
+        .json({ message: "You cannot apply to your own opportunity" });
+    }
+
+    // Prevent duplicates
+    const exists = await Application.findOne({
       opportunity: opportunityId,
-      volunteer: userId,
+      volunteer: volunteerId,
     });
 
-    if (alreadyApplied) {
-      return res
-        .status(400)
-        .json({ message: "You already applied for this opportunity." });
+    if (exists) {
+      return res.status(400).json({
+        message: "You have already applied for this opportunity",
+      });
     }
 
+    // ✅ STORE FORM DATA IN DATABASE
     const application = await Application.create({
       opportunity: opportunityId,
-      volunteer: userId,
+      volunteer: volunteerId,
+      motivation,
+      availability,
+      skills,
     });
 
-    res.status(201).json(application);
+    res.status(201).json({
+      message: "Application submitted successfully",
+      application,
+    });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({
+        message: "You have already applied for this opportunity",
+      });
+    }
+
     console.error("Apply error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to submit application" });
   }
 };
 
-/**
- * GET APPLICATIONS FOR NGO
- */
-export const getApplicationsForNGO = async (req, res) => {
+
+/* =========================
+   GET APPLIED OPPORTUNITIES (FOR DISABLE BUTTON)
+   ========================= */
+export const getMyApplications = async (req, res) => {
   try {
-    const ngoId = req.user.id;
+    const volunteerId = req.user.id;
 
-    const applications = await Application.find()
-      .populate({
-        path: "opportunity",
-        match: { createdBy: ngoId },
-      })
-      .populate("volunteer", "fullName email");
+    const applications = await Application.find({
+      volunteer: volunteerId,
+    }).select("opportunity");
 
-    const filtered = applications.filter((a) => a.opportunity);
-
-    res.json(filtered);
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-/**
- * UPDATE STATUS
- */
-export const updateApplicationStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    const updated = await Application.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
+    // return only opportunity IDs
+    const appliedIds = applications.map((app) =>
+      app.opportunity.toString()
     );
 
-    res.json(updated);
+    res.status(200).json(appliedIds);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Fetch applications error:", err);
+    res.status(500).json({ message: "Failed to fetch applications" });
   }
 };
