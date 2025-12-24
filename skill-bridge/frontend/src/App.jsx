@@ -8,12 +8,8 @@ import Dashboard from "./Components/Dashboard";
 import AccountSettings from "./Components/Accountsettings";
 import CreateOpportunity from "./Components/CreateOpportunity";
 import Opportunities from "./Components/Opportunities";
-<<<<<<< HEAD:skill-bridge/frontend/src/App.jsx
 import ApplyOpportunity from "./Components/ApplyOpportunity"; // ✅ ADD
 import ApplicationForm from "./Components/ApplicationForm";
-=======
-import ApplyOpportunity from "./Components/ApplyOpportunity";
->>>>>>> 7f2afbe5719fc60228142c53090e99886b029097:skill-bridge/src/App.jsx
 
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -95,15 +91,7 @@ function App() {
         {/* Apply Opportunity - all logged-in users */}
         <Route
           path="/apply/:id"
-<<<<<<< HEAD:skill-bridge/frontend/src/App.jsx
           element={<ApplicationForm />}
-=======
-          element={
-            <ProtectedRoute>
-              <ApplyOpportunity />
-            </ProtectedRoute>
-          }
->>>>>>> 7f2afbe5719fc60228142c53090e99886b029097:skill-bridge/src/App.jsx
         />
 
         {/* Account Settings */}
@@ -115,13 +103,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-<<<<<<< HEAD:skill-bridge/frontend/src/App.jsx
         <Route path="/applications" element={<ApplyOpportunity/>} />
-=======
-
-        {/* Catch-all route → redirect to home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
->>>>>>> 7f2afbe5719fc60228142c53090e99886b029097:skill-bridge/src/App.jsx
       </Routes>
     </>
   );
