@@ -20,6 +20,14 @@ import {
 const Hero = () => {
   const navigate = useNavigate();
 
+  const isLoggedIn = !!localStorage.getItem("token");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
   return (
     <>
       {/* HERO SECTION */}
@@ -38,19 +46,39 @@ const Hero = () => {
             </p>
 
             <div className="hero-buttons animate-slide-delay2">
-              <button
-                className="btn-primary"
-                onClick={() => navigate("/signup")}
-              >
-                Get Started 🚀
-              </button>
+              {!isLoggedIn ? (
+                <>
+                  <button
+                    className="btn-primary"
+                    onClick={() => navigate("/signup")}
+                  >
+                    Get Started 🚀
+                  </button>
 
-              <button
-                className="btn-secondary"
-                onClick={() => navigate("/login")}
-              >
-                Login
-              </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => navigate("/login")}
+                  >
+                    Login
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="btn-primary"
+                    onClick={() => navigate("/opportunities")}
+                  >
+                    Go to Dashboard
+                  </button>
+
+                  <button
+                    className="btn-secondary"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
