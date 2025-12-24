@@ -14,7 +14,7 @@ const Signup = () => {
     location: "",
     organizationName: "",
     organizationDescription: "",
-    websiteUrl: ""
+    websiteUrl: "",
   });
 
   const [error, setError] = useState("");
@@ -28,12 +28,14 @@ const Signup = () => {
     setError("");
 
     try {
+      // 🔹 Use exact backend endpoint
       const res = await fetch("http://localhost:5000/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
+<<<<<<< HEAD
       let data;
       try {
         data = await res.json();
@@ -65,6 +67,31 @@ const Signup = () => {
       } else {
         setError(err.message || "Something went wrong. Please try again.");
       }
+=======
+      const data = await res.json();
+
+      if (!res.ok) {
+        // 🔹 backend sends data.message on error
+        setError(data.message || "Signup failed");
+        return;
+      }
+
+      // ✅ Check for both user and token
+      if (!data.user || !data.token) {
+        setError("Invalid server response. Please try again.");
+        return;
+      }
+
+      // 🔹 Save in localStorage
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("token", data.token);
+
+      // ✅ Redirect to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setError("Server error. Please try again later.");
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
     }
   };
 
@@ -126,14 +153,6 @@ const Signup = () => {
             <option value="NGO">NGO / Organization</option>
             <option value="Volunteer">Volunteer</option>
           </select>
-
-          <label>Location (Optional)</label>
-          <input
-            name="location"
-            placeholder="e.g. New York, NY"
-            value={formData.location}
-            onChange={handleChange}
-          />
 
           {formData.userType === "NGO" && (
             <>

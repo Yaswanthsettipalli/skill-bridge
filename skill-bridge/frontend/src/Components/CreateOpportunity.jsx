@@ -27,7 +27,7 @@ const CreateOpportunity = () => {
     description: "",
     duration: "",
     location: "",
-    status: "Open"
+    status: "OPEN"
   });
 
   const [error, setError] = useState("");
@@ -42,7 +42,7 @@ const CreateOpportunity = () => {
       return;
     }
 
-    if (user.role !== "NGO") {
+    if (!user.userType || user.userType.trim().toUpperCase() !== "NGO") {
       setError("Access denied. Only NGO users can create opportunities.");
       navigate("/dashboard");
     }
@@ -77,21 +77,24 @@ const CreateOpportunity = () => {
       setError("");
 
       const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Invalid session. Please login again.");
+        navigate("/login");
+        return;
+      }
 
-      const response = await fetch(
-        "http://localhost:5000/api/opportunities",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            ...formData,
-            skills
-          })
-        }
-      );
+      const response = await fetch("http://localhost:5000/api/opportunities", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          skills,
+          status: formData.status?.toUpperCase() === "CLOSED" ? "CLOSED" : "OPEN"
+        })
+      });
 
       const data = await response.json();
 
@@ -121,19 +124,10 @@ const CreateOpportunity = () => {
 
       <form className="opportunity-form" onSubmit={handleSubmit}>
         <label>Title</label>
-        <input
-          type="text"
-          name="title"
-          required
-          onChange={handleChange}
-        />
+        <input type="text" name="title" required onChange={handleChange} />
 
         <label>Description</label>
-        <textarea
-          name="description"
-          required
-          onChange={handleChange}
-        />
+        <textarea name="description" required onChange={handleChange} />
 
         <label>Required Skills</label>
         <div
@@ -192,8 +186,8 @@ const CreateOpportunity = () => {
 
         <label>Status</label>
         <select name="status" onChange={handleChange}>
-          <option value="Open">Open</option>
-          <option value="Closed">Closed</option>
+          <option value="OPEN">Open</option>
+          <option value="CLOSED">Closed</option>
         </select>
 
         <div className="actions">

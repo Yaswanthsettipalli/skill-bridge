@@ -19,5 +19,8 @@ export default (authMiddleware, ngoOnly) => {
   router.put("/:id", authMiddleware, ngoOnly, updateOpportunity);
   router.delete("/:id", authMiddleware, ngoOnly, deleteOpportunity);
 
+  // ✅ No wildcard 404 inside this router
+  // Let server.js handle unmatched routes
+
   return router;
 };

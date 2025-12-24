@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import OpportunityCard from "./OpportunityCard";
 import OpportunityModal from "./OpportunityModal";
@@ -20,13 +20,17 @@ const Opportunities = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const token = localStorage.getItem("token");
 
+<<<<<<< HEAD
   /* ================= TOKEN VALIDATION ================= */
   const isValidToken = (token) => {
     return token && token !== "undefined" && token !== "null";
   };
+=======
+  const isValidToken = (token) => token && token !== "undefined" && token !== "null";
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
 
-  /* ================= FETCH OPPORTUNITIES ================= */
-  const fetchOpportunities = async () => {
+  // ✅ Wrapped in useCallback to satisfy ESLint
+  const fetchOpportunities = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -38,10 +42,16 @@ const Opportunities = () => {
         return;
       }
 
+<<<<<<< HEAD
       const res = await axios.get(
         "http://localhost:5000/api/opportunities",
         { headers: { Authorization: `Bearer ${token}` } }
       );
+=======
+      const res = await axios.get("http://localhost:5000/api/opportunities", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
 
       const cleanData = Array.isArray(res.data)
         ? res.data.filter((opp) => opp && opp._id)
@@ -54,6 +64,11 @@ const Opportunities = () => {
       setAllOpportunities(cleanData);
       setLoading(false);
     } catch (err) {
+<<<<<<< HEAD
+=======
+      console.error("Fetch error:", err.response || err.message);
+
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -62,8 +77,9 @@ const Opportunities = () => {
       setError("Failed to fetch opportunities.");
       setLoading(false);
     }
-  };
+  }, [token, navigate]);
 
+<<<<<<< HEAD
   /* ================= FETCH APPLIED OPPORTUNITIES ================= */
   const fetchAppliedOpportunities = async () => {
     try {
@@ -85,16 +101,25 @@ const Opportunities = () => {
     fetchOpportunities();
     fetchAppliedOpportunities();
   }, [token]);
+=======
+  // ✅ useEffect now safely depends on fetchOpportunities
+  useEffect(() => {
+    fetchOpportunities();
+  }, [fetchOpportunities]);
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
 
-  /* ================= FILTER ================= */
   const filteredOpportunities = allOpportunities.filter((opp) => {
     if (!opp || !opp.status) return false;
     if (filter === "ALL") return true;
     return opp.status === filter;
   });
 
+<<<<<<< HEAD
   /* ================= APPLY (REDIRECT TO FORM) ================= */
   const handleApply = (opp) => {
+=======
+  const handleApply = async (opp) => {
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
     setApplyError("");
 
     const creatorId = opp.createdBy?._id || opp.createdBy;
@@ -104,29 +129,40 @@ const Opportunities = () => {
       return;
     }
 
-    if (
-      user?.role === "NGO" &&
-      (user?.id === creatorId || user?._id === creatorId)
-    ) {
+    if (user?.userType === "NGO" && user?._id === creatorId) {
       setApplyError("You cannot apply to your own opportunity.");
       return;
     }
 
+<<<<<<< HEAD
     navigate(`/apply/${opp._id}`);
+=======
+    try {
+      await axios.post(
+        "http://localhost:5000/api/applications/apply",
+        { opportunityId: opp._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      navigate("/applications");
+    } catch (err) {
+      setApplyError(err.response?.data?.message || "Failed to apply for opportunity.");
+    }
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
   };
 
-  /* ================= DELETE ================= */
   const handleDelete = async (id) => {
     const opp = allOpportunities.find((o) => o._id === id);
     if (!opp) return;
 
     const creatorId = opp.createdBy?._id || opp.createdBy;
 
-    if (user?.id !== creatorId && user?._id !== creatorId) {
+    if (user?._id !== creatorId) {
       alert("You are not authorized to delete this opportunity.");
       return;
     }
 
+<<<<<<< HEAD
     if (!window.confirm("Are you sure you want to delete this opportunity?")) {
       return;
     }
@@ -136,24 +172,30 @@ const Opportunities = () => {
         `http://localhost:5000/api/opportunities/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+=======
+    const confirmDelete = window.confirm("Are you sure you want to delete this opportunity?");
+    if (!confirmDelete) return;
+
+    try {
+      await axios.delete(`http://localhost:5000/api/opportunities/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+>>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
       fetchOpportunities();
     } catch (err) {
       alert("Failed to delete opportunity.");
     }
   };
 
-  /* ================= UI ================= */
   return (
     <div className="opportunities-container">
       <div className="opportunities-header">
         <div>
           <h2>Opportunities</h2>
-          <p className="subtitle">
-            Explore and manage volunteering opportunities
-          </p>
+          <p className="subtitle">Explore and manage volunteering opportunities</p>
         </div>
 
-        {user?.role === "NGO" && (
+        {user?.userType === "NGO" && (
           <button
             className="btn-create-opportunity"
             onClick={() => navigate("/create-opportunity")}
@@ -174,9 +216,7 @@ const Opportunities = () => {
       {!loading &&
         filteredOpportunities.map((opp) => {
           const creatorId = opp.createdBy?._id || opp.createdBy;
-          const isOwner =
-            user?.role === "NGO" &&
-            (user?.id === creatorId || user?._id === creatorId);
+          const isOwner = user?.userType === "NGO" && user?._id === creatorId;
 
           const isApplied = appliedOpportunities.includes(opp._id);
 
@@ -203,12 +243,7 @@ const Opportunities = () => {
       {selectedOpportunity && (
         <OpportunityModal
           opportunity={selectedOpportunity}
-          isOwner={
-            user?.role === "NGO" &&
-            (user?.id ===
-              (selectedOpportunity.createdBy?._id ||
-                selectedOpportunity.createdBy))
-          }
+          isOwner={user?.userType === "NGO" && user?._id === (selectedOpportunity.createdBy?._id || selectedOpportunity.createdBy)}
           isEditMode={isEditMode}
           onClose={() => {
             setSelectedOpportunity(null);
