@@ -35,7 +35,6 @@ const Signup = () => {
         body: JSON.stringify(formData),
       });
 
-<<<<<<< HEAD
       let data;
       try {
         data = await res.json();
@@ -67,31 +66,6 @@ const Signup = () => {
       } else {
         setError(err.message || "Something went wrong. Please try again.");
       }
-=======
-      const data = await res.json();
-
-      if (!res.ok) {
-        // 🔹 backend sends data.message on error
-        setError(data.message || "Signup failed");
-        return;
-      }
-
-      // ✅ Check for both user and token
-      if (!data.user || !data.token) {
-        setError("Invalid server response. Please try again.");
-        return;
-      }
-
-      // 🔹 Save in localStorage
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("token", data.token);
-
-      // ✅ Redirect to dashboard
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      setError("Server error. Please try again later.");
->>>>>>> 7f2afbe5719fc60228142c53090e99886b029097
     }
   };
 
