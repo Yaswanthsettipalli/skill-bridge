@@ -8,15 +8,16 @@ import Dashboard from "./Components/Dashboard";
 import AccountSettings from "./Components/Accountsettings";
 import CreateOpportunity from "./Components/CreateOpportunity";
 import Opportunities from "./Components/Opportunities";
-import ApplyOpportunity from "./Components/ApplyOpportunity"; // ✅ ADD
 import ApplicationForm from "./Components/ApplicationForm";
+import MyApplications from "./Components/MyApplications";          // ✅ ADD
+import NGOApplications from "./Components/NGOApplications";        // ✅ ADD
 
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user"));
   });
 
-  // Optional: keep currentUser in sync with Local Storage
+  /* ================= KEEP USER IN SYNC ================= */
   useEffect(() => {
     const handleStorageChange = () => {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -26,22 +27,22 @@ function App() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Helper component for protected routes
+  /* ================= PROTECTED ROUTE ================= */
   const ProtectedRoute = ({ children }) => {
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user) {
-      // Not logged in → redirect to login
       return <Navigate to="/login" replace />;
     }
     return children;
   };
 
-  // Helper component for NGO-only routes
+  /* ================= NGO ONLY ROUTE ================= */
   const NGORoute = ({ children }) => {
     const user = JSON.parse(localStorage.getItem("user"));
     const role = user?.userType?.trim().toUpperCase();
+
     if (role !== "NGO") {
-      alert("Access Denied: Only NGO users can access this page.");
+      alert("Access Denied: NGO users only.");
       return <Navigate to="/dashboard" replace />;
     }
     return children;
@@ -52,11 +53,12 @@ function App() {
       <NavBar user={currentUser} />
 
       <Routes>
+        {/* PUBLIC */}
         <Route path="/" element={<Hero />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Dashboard */}
+        {/* DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -66,7 +68,49 @@ function App() {
           }
         />
 
-        {/* Create Opportunity - NGO only */}
+        {/* OPPORTUNITIES (ALL USERS) */}
+        <Route
+          path="/opportunities"
+          element={
+            <ProtectedRoute>
+              <Opportunities />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* APPLY FORM (VOLUNTEER) */}
+        <Route
+          path="/apply/:id"
+          element={
+            <ProtectedRoute>
+              <ApplicationForm />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* VOLUNTEER: MY APPLICATIONS */}
+        <Route
+          path="/my-applications"
+          element={
+            <ProtectedRoute>
+              <MyApplications />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NGO: VIEW APPLICATIONS */}
+        <Route
+          path="/ngo/applications"
+          element={
+            <ProtectedRoute>
+              <NGORoute>
+                <NGOApplications />
+              </NGORoute>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* NGO: CREATE OPPORTUNITY */}
         <Route
           path="/create-opportunity"
           element={
@@ -78,23 +122,7 @@ function App() {
           }
         />
 
-        {/* View Opportunities - all logged-in users */}
-        <Route
-          path="/opportunities"
-          element={
-            <ProtectedRoute>
-              <Opportunities />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Apply Opportunity - all logged-in users */}
-        <Route
-          path="/apply/:id"
-          element={<ApplicationForm />}
-        />
-
-        {/* Account Settings */}
+        {/* ACCOUNT SETTINGS */}
         <Route
           path="/account-settings"
           element={
@@ -103,7 +131,9 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/applications" element={<ApplyOpportunity/>} />
+
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
   );

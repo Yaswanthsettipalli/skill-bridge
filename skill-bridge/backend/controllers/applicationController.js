@@ -1,20 +1,12 @@
-
-
-/* =========================
-   APPLY TO OPPORTUNITY
-   ========================= */
 import Application from "../models/Application.js";
 import Opportunity from "../models/Opportunity.js";
 
+/* =========================
+   VOLUNTEER: APPLY TO OPPORTUNITY
+   ========================= */
 export const applyToOpportunity = async (req, res) => {
   try {
-    const {
-      opportunityId,
-      motivation,
-      availability,
-      skills
-    } = req.body;
-
+    const { opportunityId, motivation, availability, skills } = req.body;
     const volunteerId = req.user.id;
 
     // Validate opportunity
@@ -33,7 +25,7 @@ export const applyToOpportunity = async (req, res) => {
         .json({ message: "You cannot apply to your own opportunity" });
     }
 
-    // Prevent duplicates
+    // Prevent duplicate application
     const exists = await Application.findOne({
       opportunity: opportunityId,
       volunteer: volunteerId,
@@ -45,7 +37,7 @@ export const applyToOpportunity = async (req, res) => {
       });
     }
 
-    // ✅ STORE FORM DATA IN DATABASE
+    // Store application form data
     const application = await Application.create({
       opportunity: opportunityId,
       volunteer: volunteerId,
@@ -59,6 +51,7 @@ export const applyToOpportunity = async (req, res) => {
       application,
     });
   } catch (err) {
+    // Handle unique index violation
     if (err.code === 11000) {
       return res.status(400).json({
         message: "You have already applied for this opportunity",
@@ -70,9 +63,9 @@ export const applyToOpportunity = async (req, res) => {
   }
 };
 
-
 /* =========================
-   GET APPLIED OPPORTUNITIES (FOR DISABLE BUTTON)
+   VOLUNTEER: GET APPLIED OPPORTUNITY IDS
+   (Used to disable Apply button)
    ========================= */
 export const getMyApplications = async (req, res) => {
   try {
@@ -82,7 +75,6 @@ export const getMyApplications = async (req, res) => {
       volunteer: volunteerId,
     }).select("opportunity");
 
-    // return only opportunity IDs
     const appliedIds = applications.map((app) =>
       app.opportunity.toString()
     );
@@ -91,5 +83,89 @@ export const getMyApplications = async (req, res) => {
   } catch (err) {
     console.error("Fetch applications error:", err);
     res.status(500).json({ message: "Failed to fetch applications" });
+  }
+};
+
+/* =========================
+   VOLUNTEER: VIEW APPLICATION STATUS
+   ========================= */
+export const getMyApplicationsWithStatus = async (req, res) => {
+  try {
+    const volunteerId = req.user.id;
+
+    const applications = await Application.find({
+      volunteer: volunteerId,
+    })
+      .populate("opportunity", "title")
+      .select("status opportunity createdAt");
+
+    res.status(200).json(applications);
+  } catch (err) {
+    console.error("Fetch application status error:", err);
+    res.status(500).json({ message: "Failed to fetch application status" });
+  }
+};
+
+/* =========================
+   NGO: VIEW APPLICATIONS FOR THEIR OPPORTUNITIES
+   ========================= */
+export const getApplicationsForNGO = async (req, res) => {
+  try {
+    const ngoId = req.user.id;
+
+    const opportunities = await Opportunity.find({
+      createdBy: ngoId,
+    }).select("_id");
+
+    const applications = await Application.find({
+      opportunity: { $in: opportunities },
+    })
+      .populate("volunteer", "fullName email")
+      .populate("opportunity", "title")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(applications);
+  } catch (err) {
+    console.error("Fetch NGO applications error:", err);
+    res.status(500).json({ message: "Failed to fetch NGO applications" });
+  }
+};
+
+/* =========================
+   NGO: ACCEPT / REJECT APPLICATION
+   ========================= */
+export const updateApplicationStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const applicationId = req.params.id;
+
+    if (!["ACCEPTED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const application = await Application.findById(applicationId)
+      .populate("opportunity");
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    // Ensure NGO owns the opportunity
+    if (
+      application.opportunity.createdBy.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    application.status = status;
+    await application.save();
+
+    res.status(200).json({
+      message: `Application ${status.toLowerCase()}`,
+      application,
+    });
+  } catch (err) {
+    console.error("Update application status error:", err);
+    res.status(500).json({ message: "Failed to update application status" });
   }
 };

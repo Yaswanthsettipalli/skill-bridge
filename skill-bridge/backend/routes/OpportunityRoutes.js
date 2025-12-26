@@ -4,23 +4,35 @@ import {
   getAllOpportunities,
   getOpportunityById,
   updateOpportunity,
-  deleteOpportunity
+  deleteOpportunity,
 } from "../controllers/opportunityController.js";
+import { authMiddleware, ngoOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-export default (authMiddleware, ngoOnly) => {
-  // ✅ PUBLIC (AUTHENTICATED) ROUTES
-  router.get("/", authMiddleware, getAllOpportunities);
-  router.get("/:id", authMiddleware, getOpportunityById);
+/* =========================
+   GET ALL OPPORTUNITIES
+   ========================= */
+router.get("/", authMiddleware, getAllOpportunities);
 
-  // ✅ NGO ONLY ROUTES
-  router.post("/", authMiddleware, ngoOnly, createOpportunity);
-  router.put("/:id", authMiddleware, ngoOnly, updateOpportunity);
-  router.delete("/:id", authMiddleware, ngoOnly, deleteOpportunity);
+/* =========================
+   GET OPPORTUNITY BY ID
+   ========================= */
+router.get("/:id", authMiddleware, getOpportunityById);
 
-  // ✅ No wildcard 404 inside this router
-  // Let server.js handle unmatched routes
+/* =========================
+   CREATE OPPORTUNITY (NGO)
+   ========================= */
+router.post("/", authMiddleware, ngoOnly, createOpportunity);
 
-  return router;
-};
+/* =========================
+   UPDATE OPPORTUNITY (NGO)
+   ========================= */
+router.put("/:id", authMiddleware, ngoOnly, updateOpportunity);
+
+/* =========================
+   DELETE OPPORTUNITY (NGO)
+   ========================= */
+router.delete("/:id", authMiddleware, ngoOnly, deleteOpportunity);
+
+export default router;
